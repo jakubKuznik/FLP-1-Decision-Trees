@@ -54,8 +54,6 @@ smallTree =
             (Leaf "TridaC")
         )
 
---data Node 
-
 -- ERRORS 
 myError :: Int -> IO ()
 myError 1 = CONE.throwIO $ SYSIOE.userError  "Wrong arguments format."
@@ -109,73 +107,62 @@ findNodeStrings (x:xs) i
 -- findNode [String] "Left" ParentSpaces
 findNodeString :: [String] -> String ->  Int -> String
 findNodeString (x:xs) "Left" i = do
-    let linesFound = findNodeStrings (x:xs) (i+2)
+    let linesFound = findNodeStrings (x:xs) (i)
     case linesFound of
         []      -> ""
-        [s]     -> removeSpaces s 
-        [s,_]   -> removeSpaces s 
+        [s]     -> s 
+        [s,_]   -> s 
         _       -> ""
 findNodeString (x:xs) "Right" i = do
-    let linesFound = findNodeStrings (x:xs) (i+2)
+    let linesFound = findNodeStrings (x:xs) (i)
     case linesFound of
         []      -> ""
         [_]     -> ""
-        [_,s]   -> removeSpaces s 
+        [_,s]   -> s 
         _       -> ""
 findNodeString _ _ _ = "" 
 
--- Give me string of the node without spaces 
+-- Give me string of the node 
 -- Int is a spaces of builded node 
-buildNode :: String -> Int -> DTree
-buildNode [] _ = EmptyDTree
-buildNode x _= EmptyDTree
-
-
--- Successor always has spaces + 2 
-buildTree :: [String] -> DTree 
-buildTree (x:xs) = 
-    let nodeSpaces = countSpaces x
-        lineNode = removeSpaces x
-        (nodeType, rest) = break (== ':') lineNode 
-    in
+buildNode :: [String] -> String -> Int -> DTree
+buildNode _ [] _ = EmptyDTree
+buildNode (x:xs) r i = 
+    let 
+        nodeString = removeSpaces r
+        (nodeType, rest) = break (== ':') nodeString 
+    in 
         case nodeType of
-            "Node"  -> 
-                -- todo maybe into the function 
+            "Node"  ->
+                -- TODO remove the r from the x:xs 
                 let (a, b) = getNodeString rest
-                    leftTree = buildLeft xs nodeSpaces 
-                    righTree = buildRight xs nodeSpaces
+                    leftTree = buildLeft  (x:xs) (i + 2)  
+                    righTree = buildRight (x:xs) (i + 2) 
                 in Node (read a :: Int) (read b :: Float) leftTree righTree
             "Leaf"  -> 
                 let [_,b] = DLSPLIT.splitOn ":" rest
-                in Leaf b
-            _       -> EmptyDTree
+                in Leaf b 
+            _ -> EmptyDTree
+buildNode _ _ _ = EmptyDTree
+
+-- Successor always has spaces + 2 
+buildTree :: [String] -> DTree 
+buildTree (x:xs) = buildNode (x:xs) x (countSpaces x)  
 buildTree _ = EmptyDTree 
 
 -- Int is parrentspaces
 buildRight :: [String] -> Int -> DTree
 buildRight [] _ = EmptyDTree
-buildRight (x:xs) i = 
-    let nodeString = findNodeString (x:xs) "Right" i 
-        (nodeType, rest) = break (== ':') nodeString 
-    in
-        case nodeType of
-            "Node"  -> 
-                -- todo maybe into the function 
-                let (a, b) = getNodeString rest
-                    leftTree = buildLeft (x:xs) (i + 2) 
-                    righTree = buildRight (x:xs) (i + 2) 
-                in Node (read a :: Int) (read b :: Float) leftTree righTree
-            "Leaf"  -> 
-                let [_,b] = DLSPLIT.splitOn ":" rest
-                in Leaf b
-            _       -> EmptyDTree
+buildRight (x:xs) i =  
+    let r = findNodeString (x:xs) "Right" i
+    in buildNode (x:xs) r i
 
 -- Int is parrentspaces
 buildLeft :: [String] -> Int -> DTree
-buildLeft [] _ = EmptyDTree 
-buildLeft _ _ = EmptyDTree
+buildLeft [] _ = EmptyDTree
+buildLeft (x:xs) i = 
+    let r = findNodeString (x:xs) "Left" i
+    in buildNode (x:xs) r i 
 
- 
 ------------------------------
 
 -- TASK2 ---------------------
@@ -183,7 +170,6 @@ trainTree :: [String] -> IO ()
 trainTree []     = myError 1
 trainTree [arg1] = putStrLn arg1
 trainTree (_:_)  = myError 1 
-
 -------------------------------
 
 -- association list. for command line argument
