@@ -1,0 +1,6 @@
+tests/*
+*.swp
+tests.zip
+*.o
+*.hi
+flp-fun
