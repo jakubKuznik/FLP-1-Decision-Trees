@@ -17,6 +17,7 @@ import qualified System.Environment as SE (getArgs)
 import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
 import Data.List.Split as DLSPLIT (splitOn)
+import Data.List as DLIST (delete)
 
 -- Implement parth that load decisssion-tree 
 -- in specific format 
@@ -67,11 +68,9 @@ loadTree [_]          = myError 1
 loadTree [arg1, arg2] = do 
     content <- readFile arg1 
     let fileLines = lines content
-    -- let tree = buildTree fileLines
     let tree = buildTree fileLines
     putStrLn $ show tree
     putStrLn $ show smallTree
-    --putStrLn $ show tree
 loadTree (_:_)        = myError 1
 
 countSpaces :: String -> Int
@@ -104,23 +103,31 @@ findNodeStrings (x:xs) i
     | otherwise = findNodeStrings xs i 
 
 -- Find String that represent successor in string stream 
--- findNode [String] "Left" ParentSpaces
-findNodeString :: [String] -> String ->  Int -> String
-findNodeString (x:xs) "Left" i = do
+-- findNode [String] "Left" nodeSpaces 
+findNodeString :: [String] -> String ->  Int -> String -> String
+findNodeString (x:xs) "Left" i "" = do
     let linesFound = findNodeStrings (x:xs) (i)
     case linesFound of
         []      -> ""
         [s]     -> s 
-        [s,_]   -> s 
+        (s:_:_)   -> s 
         _       -> ""
-findNodeString (x:xs) "Right" i = do
+findNodeString (x:xs) "Right" i "" = do
     let linesFound = findNodeStrings (x:xs) (i)
     case linesFound of
         []      -> ""
         [_]     -> ""
-        [_,s]   -> s 
+        (_:s:_)   -> s 
         _       -> ""
-findNodeString _ _ _ = "" 
+findNodeString (x:xs) a i p
+    | p == x = findNodeString xs a i ""
+    | otherwise = findNodeString xs a i p
+findNodeString _ _ _ _ = "" 
+
+-- Successor always has spaces + 2 
+buildTree :: [String] -> DTree 
+buildTree (x:xs) = buildNode (x:xs) x (countSpaces x)  
+buildTree _ = EmptyDTree 
 
 -- Give me string of the node 
 -- Int is a spaces of builded node 
@@ -129,14 +136,17 @@ buildNode _ [] _ = EmptyDTree
 buildNode (x:xs) r i = 
     let 
         nodeString = removeSpaces r
+        -- updatedFile = DLIST.delete r (x:xs)
         (nodeType, rest) = break (== ':') nodeString 
     in 
         case nodeType of
             "Node"  ->
                 -- TODO remove the r from the x:xs 
+                -- TODO REWRITE SO IT WILL FIND TWO CLOSEST UNDER IT 
                 let (a, b) = getNodeString rest
-                    leftTree = buildLeft  (x:xs) (i + 2)  
-                    righTree = buildRight (x:xs) (i + 2) 
+                    -- here return the updated file and then call right
+                    leftTree = buildLeft  (x:xs) (i + 2) r 
+                    righTree = buildRight (x:xs) (i + 2) r 
                 in Node (read a :: Int) (read b :: Float) leftTree righTree
             "Leaf"  -> 
                 let [_,b] = DLSPLIT.splitOn ":" rest
@@ -144,23 +154,19 @@ buildNode (x:xs) r i =
             _ -> EmptyDTree
 buildNode _ _ _ = EmptyDTree
 
--- Successor always has spaces + 2 
-buildTree :: [String] -> DTree 
-buildTree (x:xs) = buildNode (x:xs) x (countSpaces x)  
-buildTree _ = EmptyDTree 
-
--- Int is parrentspaces
-buildRight :: [String] -> Int -> DTree
-buildRight [] _ = EmptyDTree
-buildRight (x:xs) i =  
-    let r = findNodeString (x:xs) "Right" i
+-- Int is parentspaces
+buildRight :: [String] -> Int -> String -> DTree
+buildRight [] _ _ = EmptyDTree
+buildRight (x:xs) i p =  
+    let r = findNodeString (x:xs) "Right" i p 
     in buildNode (x:xs) r i
 
--- Int is parrentspaces
-buildLeft :: [String] -> Int -> DTree
-buildLeft [] _ = EmptyDTree
-buildLeft (x:xs) i = 
-    let r = findNodeString (x:xs) "Left" i
+-- Int is parentspaces 
+-- String is parrent string 
+buildLeft :: [String] -> Int -> String -> DTree
+buildLeft [] _ _ = EmptyDTree
+buildLeft (x:xs) i p = 
+    let r = findNodeString (x:xs) "Left" i p
     in buildNode (x:xs) r i 
 
 ------------------------------
