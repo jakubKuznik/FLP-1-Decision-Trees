@@ -69,9 +69,19 @@ loadTree [arg1, arg2] = do
     content <- readFile arg1 
     let fileLines = lines content
     let tree = buildTree fileLines
+    printTree tree 0
     putStrLn $ show tree
     putStrLn $ show smallTree
 loadTree (_:_)        = myError 1
+
+printTree :: DTree -> Int -> IO ()
+printTree (Leaf str) indent = putStrLn $ replicate indent ' ' ++ "Leaf: " ++ str
+printTree (Node flag bound left right) indent = do
+    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", " ++ show bound
+    printTree left (indent + 2)
+    printTree right (indent + 2)
+printTree EmptyDTree _ = putStrLn "<Empty>"
+
 
 countSpaces :: String -> Int
 countSpaces [] = 0
