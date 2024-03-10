@@ -45,7 +45,6 @@ import Data.List.Split as DLSPLIT (splitOn)
 data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
 
-
 smallTree :: DTree 
 smallTree =
     Node 0 5.5
@@ -54,7 +53,6 @@ smallTree =
             (Leaf "TridaB")
             (Leaf "TridaC")
         )
-
 
 --data Node 
 
@@ -100,6 +98,39 @@ getNodeString x = let
     [a, b] = DLSPLIT.splitOn "," rest
     in (a,b)
 
+-- find lines with specific spaces 
+findNodeStrings :: [String] -> Int -> [String]
+findNodeStrings [] _ = []
+findNodeStrings (x:xs) i 
+    | countSpaces x == i = x : findNodeStrings xs i 
+    | otherwise = findNodeStrings xs i 
+
+-- Find String that represent successor in string stream 
+-- findNode [String] "Left" ParentSpaces
+findNodeString :: [String] -> String ->  Int -> String
+findNodeString (x:xs) "Left" i = do
+    let linesFound = findNodeStrings (x:xs) (i+2)
+    case linesFound of
+        []      -> ""
+        [s]     -> removeSpaces s 
+        [s,_]   -> removeSpaces s 
+        _       -> ""
+findNodeString (x:xs) "Right" i = do
+    let linesFound = findNodeStrings (x:xs) (i+2)
+    case linesFound of
+        []      -> ""
+        [_]     -> ""
+        [_,s]   -> removeSpaces s 
+        _       -> ""
+findNodeString _ _ _ = "" 
+
+-- Give me string of the node without spaces 
+-- Int is a spaces of builded node 
+buildNode :: String -> Int -> DTree
+buildNode [] _ = EmptyDTree
+buildNode x _= EmptyDTree
+
+
 -- Successor always has spaces + 2 
 buildTree :: [String] -> DTree 
 buildTree (x:xs) = 
@@ -108,25 +139,42 @@ buildTree (x:xs) =
         (nodeType, rest) = break (== ':') lineNode 
     in
         case nodeType of
-            "Node" -> 
+            "Node"  -> 
+                -- todo maybe into the function 
                 let (a, b) = getNodeString rest
                     leftTree = buildLeft xs nodeSpaces 
                     righTree = buildRight xs nodeSpaces
                 in Node (read a :: Int) (read b :: Float) leftTree righTree
-            "Leaf" -> 
+            "Leaf"  -> 
                 let [_,b] = DLSPLIT.splitOn ":" rest
                 in Leaf b
-            _ -> EmptyDTree
+            _       -> EmptyDTree
 buildTree _ = EmptyDTree 
 
-buildRight :: (Ord parrentFlor) => [String] -> parrentFlor -> DTree
-buildRight _ _ = EmptyDTree 
+-- Int is parrentspaces
+buildRight :: [String] -> Int -> DTree
+buildRight [] _ = EmptyDTree
+buildRight (x:xs) i = 
+    let nodeString = findNodeString (x:xs) "Right" i 
+        (nodeType, rest) = break (== ':') nodeString 
+    in
+        case nodeType of
+            "Node"  -> 
+                -- todo maybe into the function 
+                let (a, b) = getNodeString rest
+                    leftTree = buildLeft (x:xs) (i + 2) 
+                    righTree = buildRight (x:xs) (i + 2) 
+                in Node (read a :: Int) (read b :: Float) leftTree righTree
+            "Leaf"  -> 
+                let [_,b] = DLSPLIT.splitOn ":" rest
+                in Leaf b
+            _       -> EmptyDTree
 
-buildLeft :: (Ord parrentFlor) => [String] -> parrentFlor -> DTree
-buildLeft _ _ = EmptyDTree 
+-- Int is parrentspaces
+buildLeft :: [String] -> Int -> DTree
+buildLeft [] _ = EmptyDTree 
+buildLeft _ _ = EmptyDTree
 
--- buildTree _ = Node 0 5.5 EmptyDTree EmptyDTree
- 
  
 ------------------------------
 
@@ -138,14 +186,12 @@ trainTree (_:_)  = myError 1
 
 -------------------------------
 
-
 -- association list. for command line argument
 -- source: Learn You a Haskell for a Great Good!
 dispatch :: [(String, [String] -> IO ())]
 dispatch =  [ ("-1", loadTree)
             , ("-2", trainTree)
             ]
-
 
 main :: IO ()
 main = do
