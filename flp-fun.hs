@@ -39,8 +39,24 @@ import Control.Exception as CONE (throwIO)
 
 -- DATA TYPES:
 -- Files for classification  
-data DTree a = EmptyDTree | Node a (DTree a) (DTree a) 
+
+-- a should be Ord 
+data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
+
+
+smallTree :: DTree 
+smallTree =
+    Node 1 2.5
+    (Node 2 1.5
+        (Leaf "A")
+        (Leaf "B")
+    )
+    (Node 3 3.0
+        (Leaf "C")
+        (Leaf "D")
+    )
+
 
 --data Node 
 
@@ -58,9 +74,11 @@ loadTree [arg1, arg2] = do
     content <- readFile arg1 
     let fileLines = lines content
     buildTree fileLines
+    putStrLn $ show smallTree
     putStr ""
     -- q fileLines
 loadTree (_:_)        = myError 1
+
 
 buildTree :: [String] -> IO ()
 buildTree (x:xs) = do
