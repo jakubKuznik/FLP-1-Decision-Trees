@@ -37,21 +37,48 @@ import Control.Exception as CONE (throwIO)
 --TridaB
 --TridaC
 
+-- DATA TYPES:
+-- Files for classification  
+data DTree a = EmptyDTree | Node a (DTree a) (DTree a) 
+    deriving (Show, Read, Eq)
+
+--data Node 
+
+-- ERRORS 
 myError :: Int -> IO ()
 myError 1 = CONE.throwIO $ SYSIOE.userError  "Wrong arguments format."
 myError 2 = CONE.throwIO $ SYSIOE.userError  "No arguments given."
 myError _ = CONE.throwIO $ SYSIOE.userError  "Unknown Error."
 
+-- TASK 1 --------------------
 loadTree :: [String] -> IO ()
 loadTree []           = myError 1
 loadTree [_]          = myError 1
-loadTree [arg1, arg2] = putStrLn arg1 >> putStrLn arg2 
-loadTree (_:_)        = myError 1  
+loadTree [arg1, arg2] = do 
+    content <- readFile arg1 
+    let fileLines = lines content
+    buildTree fileLines
+    putStr ""
+    -- q fileLines
+loadTree (_:_)        = myError 1
 
+buildTree :: [String] -> IO ()
+buildTree (x:xs) = do
+    putStrLn x
+    buildTree xs
+buildTree _ = putStr ""
+ 
+ 
+------------------------------
+
+-- TASK2 ---------------------
 trainTree :: [String] -> IO ()
 trainTree []     = myError 1
 trainTree [arg1] = putStrLn arg1
 trainTree (_:_)  = myError 1 
+
+-------------------------------
+
 
 -- association list. for command line argument
 -- source: Learn You a Haskell for a Great Good!
@@ -59,6 +86,7 @@ dispatch :: [(String, [String] -> IO ())]
 dispatch =  [ ("-1", loadTree)
             , ("-2", trainTree)
             ]
+
 
 main :: IO ()
 main = do
