@@ -72,7 +72,8 @@ loadTree [arg1, arg2] = do
     content <- readFile arg1 
     let fileLines = lines content
     -- let tree = buildTree fileLines
-    buildTree fileLines
+    let tree = buildTree fileLines
+    putStrLn $ show tree
     putStrLn $ show smallTree
     --putStrLn $ show tree
 loadTree (_:_)        = myError 1
@@ -89,35 +90,34 @@ removeSpaces (x:xs)
     | x == ' ' = removeSpaces xs
     | otherwise = x : removeSpaces xs
 
+-- From: 
+--  Node: 0, 5.5
+-- Get:
+-- [0, 5.5]
+getNodeString :: String -> (String, String)
+getNodeString x = let 
+    [_, rest] = DLSPLIT.splitOn ":" x
+    [a, b] = DLSPLIT.splitOn "," rest
+    in (a,b)
+
 -- Successor always has spaces + 2 
-buildTree :: [String] -> IO ()
-buildTree (x:xs) = do
-    let space = countSpaces x
-    putStr (show space)
-    putStr " "
-    putStrLn $ removeSpaces x
-    let lineNode = removeSpaces x
-    let (nodeType, rest) = break (== ':') lineNode 
-    case nodeType of
-        "Node" -> do
-            putStr "Node"
-            let [_, rest'] = DLSPLIT.splitOn ":" rest
-            let [a, b] = DLSPLIT.splitOn "," rest' 
-            let leftTree = buildLeft xs lineNode
-            let righTree = buildRight xs lineNode
-            putStr a
-            putStr b
-            let newNode = Node (read a :: Int) (read b :: Float) leftTree righTree
-            putStrLn $ show newNode
-        "Leaf" -> do
-            putStr "Leaf"
-            let [_,b] = DLSPLIT.splitOn ":" rest
-            let newLeaf = Leaf b
-            putStrLn $ show newLeaf
-        _ -> do
-            myError 3
-    buildTree xs
-buildTree _ = putStrLn "end"
+buildTree :: [String] -> DTree 
+buildTree (x:xs) = 
+    let nodeSpaces = countSpaces x
+        lineNode = removeSpaces x
+        (nodeType, rest) = break (== ':') lineNode 
+    in
+        case nodeType of
+            "Node" -> 
+                let (a, b) = getNodeString rest
+                    leftTree = buildLeft xs nodeSpaces 
+                    righTree = buildRight xs nodeSpaces
+                in Node (read a :: Int) (read b :: Float) leftTree righTree
+            "Leaf" -> 
+                let [_,b] = DLSPLIT.splitOn ":" rest
+                in Leaf b
+            _ -> EmptyDTree
+buildTree _ = EmptyDTree 
 
 buildRight :: (Ord parrentFlor) => [String] -> parrentFlor -> DTree
 buildRight _ _ = EmptyDTree 
