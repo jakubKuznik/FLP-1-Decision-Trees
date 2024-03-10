@@ -15,7 +15,8 @@
 -- base, containers, parsec, vector, split, directory, random. !!
 
 import qualified System.Environment as SE (getArgs)
-
+import System.IO.Error as SYSIOE (userError)
+import Control.Exception as CONE (throwIO)
 -- Implement parth that load decisssion-tree 
 -- in specific format 
 --Node: 0, 5.5 
@@ -36,14 +37,36 @@ import qualified System.Environment as SE (getArgs)
 --TridaB
 --TridaC
 
+myError :: Int -> IO ()
+myError 1 = CONE.throwIO $ SYSIOE.userError  "Wrong arguments format."
+myError 2 = CONE.throwIO $ SYSIOE.userError  "No arguments given."
+myError _ = CONE.throwIO $ SYSIOE.userError  "Unknown Error."
 
+loadTree :: [String] -> IO ()
+loadTree []           = myError 1
+loadTree [_]          = myError 1
+loadTree [arg1, arg2] = putStrLn arg1 >> putStrLn arg2 
+loadTree (_:_)        = myError 1  
 
-foo :: String -> String -> String 
-foo a _ = a 
+trainTree :: [String] -> IO ()
+trainTree []     = myError 1
+trainTree [arg1] = putStrLn arg1
+trainTree (_:_)  = myError 1 
+
+-- association list. for command line argument
+-- source: Learn You a Haskell for a Great Good!
+dispatch :: [(String, [String] -> IO ())]
+dispatch =  [ ("-1", loadTree)
+            , ("-2", trainTree)
+            ]
 
 main :: IO ()
 main = do
-    (command:args) <- SE.getArgs
-    case args of
-        (arg:_) -> putStrLn $ foo command arg
-        _       -> putStrLn "No arguments provided."
+    args <- SE.getArgs
+    case args of  
+        [] -> myError 2 -- no arguments given
+        (command:restArgs) -> do
+            let action = lookup command dispatch 
+            case action of
+                Just a -> a restArgs 
+                Nothing -> myError 1 
