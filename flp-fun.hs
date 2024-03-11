@@ -71,7 +71,7 @@ loadTree [arg1, arg2] = do
     let tree = buildTree treeLines 
     -- debug 
     printTree tree 0
-    putStrLn $ show tree
+    --putStrLn $ show tree
     
     dataFile <- readFile arg2
     let dataLines = lines dataFile
@@ -79,13 +79,24 @@ loadTree [arg1, arg2] = do
 
 loadTree (_:_)        = myError 1
 
+getOnIndex :: [Float] -> Int -> Float
+getOnIndex (x:_) 0 = x
+getOnIndex (_:xs) i = getOnIndex xs (i-1)
+getOnIndex _ _ = 0 --todo error
+
+-- TODO have to find feature index 
 evaluateLine :: DTree -> [Float] -> IO ()
-evaluateLine (Node _ f l r) (x:xs) = do
+evaluateLine (Node i f l r) xs = do
+    let x = getOnIndex xs i 
     if x <= f
-        then evaluateLine l xs 
-        else evaluateLine r xs 
+        then do 
+            putStr $ "L: " ++ "Tv: " ++ show f ++ " Lv:" ++ show x ++ "\n"
+            evaluateLine l xs 
+        else do 
+            putStr $ "R: " ++ "Tv: " ++ show f ++ " Lv:" ++ show x ++ "\n"
+            evaluateLine r xs 
 evaluateLine (Leaf s) _ = do
-    putStrLn s  
+    putStrLn s 
 evaluateLine _ _ = myError 3
 
 evaluateData :: DTree -> [String] -> IO ()
