@@ -15,6 +15,7 @@
 import qualified System.Environment as SE (getArgs)
 import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
+import Data.List as DLIST (sortBy)
 import Data.List.Split as DLSPLIT (splitOn)
 
 -- DATA TYPES:
@@ -48,14 +49,9 @@ loadTree [arg1, arg2] = do
     treeFile <- readFile arg1 
     let treeLines = lines treeFile
     let tree = buildTree treeLines 
-    -- debug 
-    --printTree tree 0
-    --putStrLn $ show tree
-    
     dataFile <- readFile arg2
     let dataLines = lines dataFile
     evaluateData tree dataLines
-
 loadTree (_:_)        = myError 1
 
 getOnIndex :: [Float] -> Int -> Float
@@ -63,7 +59,6 @@ getOnIndex (x:_) 0 = x
 getOnIndex (_:xs) i = getOnIndex xs (i-1)
 getOnIndex _ _ = 0 --todo error
 
--- TODO have to find feature index 
 evaluateLine :: DTree -> [Float] -> IO ()
 evaluateLine (Node i f l r) xs = do
     let x = getOnIndex xs i 
@@ -176,8 +171,28 @@ buildLeft (x:xs) i p =
 -- TASK2 ---------------------
 trainTree :: [String] -> IO ()
 trainTree []     = myError 1
-trainTree [arg1] = putStrLn arg1
+trainTree [arg1] = do
+    dataFile <- readFile arg1 
+    let dataLines = lines dataFile 
+    let parsedData = parseFile dataLines
+    let sortedData = sortedList 0 parsedData  
+    putStrLn $ show parsedData
+    putStrLn $ show sortedData 
 trainTree (_:_)  = myError 1 
+
+compareNthFloat :: Int -> ([Float], String) -> ([Float], string) -> Ordering
+compareNthFloat n (a, _) (b, _) = compare (a !! n) (b !! n)
+
+sortedList :: Int -> [([Float], String)] -> [([Float], String)]
+sortedList n k = sortBy (compareNthFloat n) k 
+
+parseFile :: [String] -> [([Float], String)]
+parseFile [] = []
+parseFile (x:xs) = let
+    a = DLSPLIT.splitOn "," x
+    in (map read (init a) :: [Float], last a) : parseFile xs 
+
+
 -------------------------------
 
 -- association list. for command line argument
