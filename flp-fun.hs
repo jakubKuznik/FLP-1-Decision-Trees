@@ -169,22 +169,44 @@ buildLeft (x:xs) i p =
 ------------------------------
 
 -- TASK2 ---------------------
+-- find potential split (where the classes differ)
+-- 1 TA  --> split point 1.5 
+-- 2 TB  
+-- ([row,line of TA],Float GIMI)
+-- find lowest GIMI 
+-- remove row 
+-- build node 
+-- split into two list (LN, RN)
 trainTree :: [String] -> IO ()
 trainTree []     = myError 1
 trainTree [arg1] = do
     dataFile <- readFile arg1 
     let dataLines = lines dataFile 
-    let parsedData = parseFile dataLines
-    let sortedData = sortedList 0 parsedData  
+    let parsedData = sorteList 0 (parseFile dataLines)
+    let potentialSplits = fPoSpInCo (0,0) (0.0,"",0) parsedData
+    putStrLn $ show potentialSplits
     putStrLn $ show parsedData
-    putStrLn $ show sortedData 
-trainTree (_:_)  = myError 1 
+trainTree (_:_)  = myError 1
+    
+-- let sortedData = sortedList 0 parsedData  
+
+-- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
+-- findPotentialSplitsInColumn 
+fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> [([Float], String)] -> [(Int, Int)]
+fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) 
+    | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ([(fr,s)] ++ r)
+    | otherwise = fPoSpInCo (1,c) (f,s,0) r
+fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r)
+    | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ([(fr,s)] ++ r)
+    | pc == s   = fPoSpInCo (n+1, c) (f, s, 0) r
+    | otherwise = (n,c) : fPoSpInCo (n+1, c) (f, s, 0) r
+fPoSpInCo _ _ _ = []
 
 compareNthFloat :: Int -> ([Float], String) -> ([Float], string) -> Ordering
 compareNthFloat n (a, _) (b, _) = compare (a !! n) (b !! n)
 
-sortedList :: Int -> [([Float], String)] -> [([Float], String)]
-sortedList n k = sortBy (compareNthFloat n) k 
+sorteList :: Int -> [([Float], String)] -> [([Float], String)]
+sorteList n k = sortBy (compareNthFloat n) k 
 
 parseFile :: [String] -> [([Float], String)]
 parseFile [] = []
