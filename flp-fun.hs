@@ -194,10 +194,10 @@ trainTree (_:_)  = myError 1
 -- findPotentialSplitsInColumn 
 fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> [([Float], String)] -> [(Int, Int)]
 fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) 
-    | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ([(fr,s)] ++ r)
+    | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ((fr,s) : r)
     | otherwise = fPoSpInCo (1,c) (f,s,0) r
 fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r)
-    | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ([(fr,s)] ++ r)
+    | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ((fr,s) : r)
     | pc == s   = fPoSpInCo (n+1, c) (f, s, 0) r
     | otherwise = (n,c) : fPoSpInCo (n+1, c) (f, s, 0) r
 fPoSpInCo _ _ _ = []
