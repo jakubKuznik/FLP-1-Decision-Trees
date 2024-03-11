@@ -17,7 +17,6 @@ import qualified System.Environment as SE (getArgs)
 import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
 import Data.List.Split as DLSPLIT (splitOn)
-import Data.List as DLIST (delete)
 
 -- Implement parth that load decisssion-tree 
 -- in specific format 
@@ -46,34 +45,14 @@ import Data.List as DLIST (delete)
 data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
 
-smallTree :: DTree 
-smallTree =
-    Node 0 5.5
-        (Leaf "TridaA")
-        (Node 1 3.0
-            (Leaf "TridaB")
-            (Leaf "TridaC")
-        )
-
 -- ERRORS 
 myError :: Int -> IO ()
 myError 1 = CONE.throwIO $ SYSIOE.userError  "Wrong arguments format."
 myError 2 = CONE.throwIO $ SYSIOE.userError  "No arguments given."
+myError 3 = CONE.throwIO $ SYSIOE.userError  "Cannot classify data."
 myError _ = CONE.throwIO $ SYSIOE.userError  "Unknown Error."
 
--- TASK 1 --------------------
-loadTree :: [String] -> IO ()
-loadTree []           = myError 1
-loadTree [_]          = myError 1
-loadTree [arg1, arg2] = do 
-    content <- readFile arg1 
-    let fileLines = lines content
-    let tree = buildTree fileLines
-    printTree tree 0
-    putStrLn $ show tree
-    putStrLn $ show smallTree
-loadTree (_:_)        = myError 1
-
+-- TODO delete 
 printTree :: DTree -> Int -> IO ()
 printTree (Leaf str) indent = putStrLn $ replicate indent ' ' ++ "Leaf: " ++ str
 printTree (Node flag bound left right) indent = do
@@ -82,6 +61,39 @@ printTree (Node flag bound left right) indent = do
     printTree right (indent + 2)
 printTree EmptyDTree _ = putStrLn "<Empty>"
 
+-- TASK 1 --------------------
+loadTree :: [String] -> IO ()
+loadTree []           = myError 1
+loadTree [_]          = myError 1
+loadTree [arg1, arg2] = do 
+    treeFile <- readFile arg1 
+    let treeLines = lines treeFile
+    let tree = buildTree treeLines 
+    -- debug 
+    printTree tree 0
+    putStrLn $ show tree
+    
+    dataFile <- readFile arg2
+    let dataLines = lines dataFile
+    evaluateData tree dataLines
+
+loadTree (_:_)        = myError 1
+
+evaluateLine :: DTree -> [Float] -> IO ()
+evaluateLine (Node _ f l r) (x:xs) = do
+    if x <= f
+        then evaluateLine l xs 
+        else evaluateLine r xs 
+evaluateLine (Leaf s) _ = do
+    putStrLn s  
+evaluateLine _ _ = myError 3
+
+evaluateData :: DTree -> [String] -> IO ()
+evaluateData t (x:xs) = do
+    let line = map read . splitOn "," $ removeSpaces x :: [Float]
+    evaluateLine t line
+    evaluateData t xs
+evaluateData _ [] = return () 
 
 countSpaces :: String -> Int
 countSpaces [] = 0
@@ -95,17 +107,15 @@ removeSpaces (x:xs)
     | x == ' ' = removeSpaces xs
     | otherwise = x : removeSpaces xs
 
--- From: 
---  Node: 0, 5.5
--- Get:
--- [0, 5.5]
+-- From: Node: 0, 5.5
+-- Get: [0, 5.5]
 getNodeString :: String -> (String, String)
 getNodeString x = let 
     [_, rest] = DLSPLIT.splitOn ":" x
     [a, b] = DLSPLIT.splitOn "," rest
     in (a,b)
 
--- find lines with specific spaces 
+-- find lines with specific number of spaces 
 findNodeStrings :: [String] -> Int -> [String]
 findNodeStrings [] _ = []
 findNodeStrings (x:xs) i 
@@ -121,14 +131,12 @@ findNodeString (x:xs) "Left" i "" = do
         []      -> ""
         [s]     -> s 
         (s:_:_)   -> s 
-        _       -> ""
 findNodeString (x:xs) "Right" i "" = do
     let linesFound = findNodeStrings (x:xs) (i)
     case linesFound of
         []      -> ""
         [_]     -> ""
-        (_:s:_)   -> s 
-        _       -> ""
+        (_:s:_) -> s 
 findNodeString (x:xs) a i p
     | p == x = findNodeString xs a i ""
     | otherwise = findNodeString xs a i p
