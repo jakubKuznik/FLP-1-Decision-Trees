@@ -1,0 +1,7 @@
+Node: 0, 5.5
+  Node: 1, 6.9
+    Leaf: TridaX
+    Leaf: TridaD
+  Node: 1, 3.0
+    Leaf: TridaB
+    Leaf: TridaC

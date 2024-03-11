@@ -12,31 +12,10 @@
 
 --libs 
 -- base, containers, parsec, vector, split, directory, random. !!
-
 import qualified System.Environment as SE (getArgs)
 import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
 import Data.List.Split as DLSPLIT (splitOn)
-
--- Implement parth that load decisssion-tree 
--- in specific format 
---Node: 0, 5.5 
---  Leaf: TridaA
---  Node: 1, 3.0
---    Leaf: TridaB
---    Leaf: TridaC
-
--- Implement a part, that for loadaded tree and new data 
--- decide result class. 
--- New data syntax: 
--- 2.4, 1.3
--- 6.1, 0.3
--- 6.3, 4.4
-
---Example output for the tree that is here:
---TridaA
---TridaB
---TridaC
 
 -- DATA TYPES:
 -- Files for classification  
@@ -163,15 +142,11 @@ buildNode _ [] _ = EmptyDTree
 buildNode (x:xs) r i = 
     let 
         nodeString = removeSpaces r
-        -- updatedFile = DLIST.delete r (x:xs)
         (nodeType, rest) = break (== ':') nodeString 
     in 
         case nodeType of
             "Node"  ->
-                -- TODO remove the r from the x:xs 
-                -- TODO REWRITE SO IT WILL FIND TWO CLOSEST UNDER IT 
                 let (a, b) = getNodeString rest
-                    -- here return the updated file and then call right
                     leftTree = buildLeft  (x:xs) (i + 2) r 
                     righTree = buildRight (x:xs) (i + 2) r 
                 in Node (read a :: Int) (read b :: Float) leftTree righTree
