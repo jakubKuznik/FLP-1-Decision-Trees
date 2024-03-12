@@ -186,11 +186,23 @@ trainTree [arg1] = do
 
     -- let parsedData = sorteList 0 (parseFile dataLines)
     -- let potentialSplits = fPoSpInCo (0,0) (0.0,"",0) parsedData
-
+    let c = getClass parsedData
+    let classes = removeRedundantClass c
+    putStrLn $ show classes
     buildCARD parsedData 0
 
     putStrLn $ show parsedData
 trainTree (_:_)  = myError 1
+
+getClass :: [([Float], String)] -> [String]
+getClass ((_,s):r) = s : getClass r
+getClass [] = []
+
+
+removeRedundantClass :: Eq a => [a] -> [a]
+removeRedundantClass (x:xs) = x : removeRedundantClass (filter (/= x) xs)
+removeRedundantClass [] = []
+
 
 -- from data build tree using CARD method
 -- Int <==> column 
