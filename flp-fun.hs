@@ -189,7 +189,7 @@ trainTree [arg1] = do
     let c = getClass parsedData
     let classes = removeRedundantClass c
     putStrLn $ show classes
-    buildCARD parsedData 0
+    buildCARD parsedData classes 0
 
     putStrLn $ show parsedData
 trainTree (_:_)  = myError 1
@@ -198,33 +198,45 @@ getClass :: [([Float], String)] -> [String]
 getClass ((_,s):r) = s : getClass r
 getClass [] = []
 
-
 removeRedundantClass :: Eq a => [a] -> [a]
 removeRedundantClass (x:xs) = x : removeRedundantClass (filter (/= x) xs)
 removeRedundantClass [] = []
 
+getNthColumn :: [([Float], String)] -> Int -> [(Float, String)]
+getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
 
 -- from data build tree using CARD method
 -- Int <==> column 
-buildCARD :: [([Float], String)] -> Int -> IO ()
-buildCARD d c = do
-    let sortedData = sorteList c d
+buildCARD :: [([Float], String)] -> [String] -> Int -> IO ()
+buildCARD da t c = do
+    let sortedData = sorteList c da 
     let potentialSplits = fPoSpInCo (c, 1) (0.0, "", 0) sortedData 
+    countGINI sortedData potentialSplits t (c,0)
+    
+    -- putStrLn $ show $ length sortedData
+    putStrLn $ show (getNthColumn sortedData 1  )
 
-    putStrLn $ show potentialSplits
+-- Potential splits rows, all clasess, column, (Row, GINI)
+-- (Int,Int) --> (Desired, Current) 
+countGINI :: [([Float], String)] -> [Int] -> [String] -> (Int,Int) -> IO ()
+    -- [(Int, Float)]
+countGINI x (a:_) t (c,_) = do
+    --let (l1,l2) = splitAt a x
+    putStrLn ""
+countGINI _ _ _ _ = putStr ""
 
-countGINI :: [(Int)] -> Int -> [(Int, Int)]
-countGINI _ _ = []
+-- (Int,Int) --> (Desired, Current) 
+giniFloat :: [(Float, String)] -> [String] -> Float
+giniFloat _ _ = 1.0
 
 -- let sortedData = sortedList 0 parsedData  
-
 -- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
 -- findPotentialSplitsInColumn
 -- for a given column returns a list of (rows,columns) where there is potencial split
 --    CARD method 
 fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> [([Float], String)] -> [Int]
 fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
-    | c > b     = [-1]
+    | c > b      = [-1]
     | otherwise  = fPoSpInCo (1,c) (f,s,0) r
 fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) -- get to given column  
     | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ((fr,s) : r)
