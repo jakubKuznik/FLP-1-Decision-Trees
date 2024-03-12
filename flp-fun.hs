@@ -209,21 +209,34 @@ getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
 -- Int <==> column 
 buildCARD :: [([Float], String)] -> [String] -> Int -> IO ()
 buildCARD da t c = do
-    let sortedData = sorteList c da 
+    let sortedData      = sorteList c da 
+    let oneColumnData   = getNthColumn sortedData c
     let potentialSplits = fPoSpInCo (c, 1) (0.0, "", 0) sortedData 
-    countGINI sortedData potentialSplits t (c,0)
+
+    countGINI oneColumnData potentialSplits t 
     
     -- putStrLn $ show $ length sortedData
     putStrLn $ show (getNthColumn sortedData 1  )
 
 -- Potential splits rows, all clasess, column, (Row, GINI)
 -- (Int,Int) --> (Desired, Current) 
-countGINI :: [([Float], String)] -> [Int] -> [String] -> (Int,Int) -> IO ()
-    -- [(Int, Float)]
-countGINI x (a:_) t (c,_) = do
-    --let (l1,l2) = splitAt a x
-    putStrLn ""
-countGINI _ _ _ _ = putStr ""
+countGINI :: [(Float, String)] -> [Int] -> [String] -> IO ()
+countGINI _ [] _ = do 
+    putStr ""
+countGINI da (x:xs) t = do
+    let (l1,l2) = splitAt x da
+    
+    let totalSize   = fromIntegral (length l1 + length l2)
+    let ratio1      = fromIntegral (length l1) / totalSize
+    let ratio2      = fromIntegral (length l2) / totalSize
+    let ginF1       = giniFloat l1 t 
+    let ginF2       = giniFloat l2 t
+    let giniRes     = (ratio1 * ginF1) + (ratio2 * ginF2)
+    putStrLn $ show giniRes
+    -- TODO out (x,giniRes) : countGINI
+    countGINI da xs t     
+    putStr ""
+
 
 -- (Int,Int) --> (Desired, Current) 
 giniFloat :: [(Float, String)] -> [String] -> Float
