@@ -182,21 +182,37 @@ trainTree []     = myError 1
 trainTree [arg1] = do
     dataFile <- readFile arg1 
     let dataLines = lines dataFile 
-    let parsedData = sorteList 0 (parseFile dataLines)
-    let potentialSplits = fPoSpInCo (0,0) (0.0,"",0) parsedData
-    putStrLn $ show potentialSplits
+    let parsedData = parseFile dataLines
+
+    -- let parsedData = sorteList 0 (parseFile dataLines)
+    -- let potentialSplits = fPoSpInCo (0,0) (0.0,"",0) parsedData
+
+    buildCARD parsedData
+
     putStrLn $ show parsedData
 trainTree (_:_)  = myError 1
-    
+
+-- from data build tree using CARD method 
+buildCARD :: [([Float], String)] -> IO ()
+buildCARD d = do
+    let sortedData = sorteList 0 d
+    let potentialSplits = fPoSpInCo (0, 0) (0.0, "", 0) sortedData 
+    putStrLn $ show potentialSplits
+
 -- let sortedData = sortedList 0 parsedData  
 
 -- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
--- findPotentialSplitsInColumn 
+-- findPotentialSplitsInColumn
+-- for a given column returns a list of (rows,columns) where there is potencial split
+--    CARD method 
 fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> [([Float], String)] -> [(Int, Int)]
-fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) 
+fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
+    | c > b     = [(-1,-1)]
+    | otherwise  = fPoSpInCo (1,c) (f,s,0) r
+fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) -- get to given column  
     | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ((fr,s) : r)
     | otherwise = fPoSpInCo (1,c) (f,s,0) r
-fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r)
+fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r) -- check if class is differ 
     | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ((fr,s) : r)
     | pc == s   = fPoSpInCo (n+1, c) (f, s, 0) r
     | otherwise = (n,c) : fPoSpInCo (n+1, c) (f, s, 0) r
