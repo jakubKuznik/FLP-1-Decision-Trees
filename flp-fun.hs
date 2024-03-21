@@ -213,7 +213,7 @@ buildCARD da t c
     | otherwise =
         let sortedData      = sorteList c da 
             oneColumnData   = getNthColumn sortedData c
-            potentialSplits = (fPoSpInCo (c, 1) (0.0, "", 0) sortedData)
+            potentialSplits = filter (\x -> x < (length da)) (fPoSpInCo (c, 1) (0.0, "", 0) sortedData)
             gini            = countGINI oneColumnData potentialSplits t
             colGini         = map (\x -> (c,x)) gini
         in colGini ++ buildCARD da t (c+1) 
@@ -256,7 +256,6 @@ fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
 fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) -- get to given column  
     | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ((fr,s) : r)
     | otherwise = fPoSpInCo (1,c) (f,s,0) r
-fPoSpInCo _ _ [_] = []
 fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r) -- check if class is differ 
     | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ((fr,s) : r)
     | pc == s   = fPoSpInCo (n+1, c) (f, s, 0) r
