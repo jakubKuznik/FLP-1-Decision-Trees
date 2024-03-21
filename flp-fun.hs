@@ -177,14 +177,6 @@ buildLeft (x:xs) i p =
 
 
 -- TASK2 ---------------------
--- find potential split (where the classes differ)
--- 1 TA  --> split point 1.5 
--- 2 TB  
--- ([row,line of TA],Float GIMI)
--- find lowest GIMI 
--- remove row 
--- build node 
--- split into two list (LN, RN)
 trainTree :: [String] -> IO ()
 trainTree []     = myError 1
 trainTree [arg1] = do
@@ -197,7 +189,7 @@ trainTree [arg1] = do
     let c = getClass parsedData
     let classes = removeRedundantClass c
     putStrLn $ show classes
-    buildCARD parsedData classes 0
+    putStrLn $ show $ buildCARD parsedData classes 0
 
     putStrLn $ show parsedData
 trainTree (_:_)  = myError 1
@@ -215,18 +207,32 @@ getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
 
 -- from data build tree using CARD method
 -- Int <==> column 
-buildCARD :: [([Float], String)] -> [String] -> Int -> IO ()
-buildCARD da t c = do
-    let sortedData      = sorteList c da 
-    let oneColumnData   = getNthColumn sortedData c
-    let potentialSplits = fPoSpInCo (c, 1) (0.0, "", 0) sortedData 
+buildCARD :: [([Float], String)] -> [String] -> Int -> [(Int,(Int,Float))]
+buildCARD da t c 
+    | c >= (length (fst ( head da))) = []
+    | otherwise =
+        let sortedData      = sorteList c da 
+            oneColumnData   = getNthColumn sortedData c
+            potentialSplits = (fPoSpInCo (c, 1) (0.0, "", 0) sortedData)
+            gini            = countGINI oneColumnData potentialSplits t
+            colGini         = map (\x -> (c,x)) gini
+        in colGini ++ buildCARD da t (c+1) 
 
-    putStrLn $ show oneColumnData
-    putStrLn $ show potentialSplits
-    countGINI oneColumnData potentialSplits t 
-    
-    -- putStrLn $ show $ length sortedData
-    putStrLn $ show (getNthColumn sortedData 1  )
+-- Potential splits rows, all clasess, column, (Row, GINI)
+-- (Int,Int) --> (Desired, Current) 
+countGINI :: [(Float, String)] -> [Int] -> [String] -> [(Int,Float)]
+countGINI _ [] _ = [] 
+countGINI da (x:xs) t = 
+    let (l1,l2)     = splitAt x da
+        totalSize   = fromIntegral (length l1 + length l2)
+        ratio1      = fromIntegral (length l1) / totalSize
+        ratio2      = fromIntegral (length l2) / totalSize
+        classes1    = countMatches t (map snd l1)
+        classes2    = countMatches t (map snd l2)
+        flUpper     = 1.0 - (countGiniSmall 0 (length l1) (map snd classes1))
+        flDown      = 1.0 - (countGiniSmall 0 (length l2) (map snd classes2))
+        gini        = (ratio1 * flUpper) + (ratio2 * flDown)
+    in (x,gini) : countGINI da xs t
 
 countMatches :: [String] -> [String] -> [(String,Int)]
 countMatches [] _ = []  
@@ -236,39 +242,7 @@ countMatches (x:xs) a = (x, (length (filter (== x) a))) : countMatches xs a
 countGiniSmall :: Float -> Int -> [Int] -> Float
 countGiniSmall f _ []     = f
 countGiniSmall f s (x:xs) = 
-    countGiniSmall (f + (fromIntegral (x ^ 2) / fromIntegral (s ^ 2))) s xs
-
-
--- Potential splits rows, all clasess, column, (Row, GINI)
--- (Int,Int) --> (Desired, Current) 
-countGINI :: [(Float, String)] -> [Int] -> [String] -> IO ()
-countGINI _ [] _ = do 
-    putStr ""
-countGINI da (x:xs) t = do
-
-    -- 1 - (0/3)^2 - (3/3)^2 = 0.0
-    -- 1 - (3/7)^2 - (4/7)^2 = 0.4897
-    -- GINI NUM 
-    -- 3/10 * 0.0 + 7/10 * 0.4897 = 0.3427
-    -- SMALLER GINI -> BETTER SPLIT 
-    
-    let (l1,l2)     = splitAt x da
-    let totalSize   = fromIntegral (length l1 + length l2)
-    let ratio1      = fromIntegral (length l1) / totalSize
-    let ratio2      = fromIntegral (length l2) / totalSize
-    let classes1    = countMatches t (map snd l1)
-    let classes2    = countMatches t (map snd l2)
-    let flUpper     = 1.0 - (countGiniSmall 0 (length l1) (map snd classes1))
-    let flDown      = 1.0 - (countGiniSmall 0 (length l2) (map snd classes2))
-    let gini        = (ratio1 * flUpper) + (ratio2 * flDown)
-    putStrLn "Classess" 
-    putStrLn $ show classes1 
-    putStrLn $ show classes2 
-    putStrLn "SmallGini" 
-    putStrLn $ show flUpper 
-    putStrLn $ show flDown 
-    putStrLn "GINI" 
-    putStrLn $ show gini 
+    countGiniSmall (f + (fromIntegral (x*x) / fromIntegral (s*s))) s xs
 
 -- let sortedData = sortedList 0 parsedData  
 -- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
@@ -282,6 +256,7 @@ fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
 fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) -- get to given column  
     | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ((fr,s) : r)
     | otherwise = fPoSpInCo (1,c) (f,s,0) r
+fPoSpInCo _ _ [_] = []
 fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r) -- check if class is differ 
     | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ((fr,s) : r)
     | pc == s   = fPoSpInCo (n+1, c) (f, s, 0) r
@@ -300,7 +275,6 @@ parseFile (x:xs) = let
     a = DLSPLIT.splitOn "," x
     in (map read (init a) :: [Float], last a) : parseFile xs 
 -------------------------------
-
 
 -- association list. for command line argument
 dispatch :: [(String, [String] -> IO ())]
