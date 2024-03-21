@@ -181,17 +181,20 @@ trainTree :: [String] -> IO ()
 trainTree []     = myError 1
 trainTree [arg1] = do
     dataFile <- readFile arg1 
-    let dataLines = lines dataFile 
-    let parsedData = parseFile dataLines
-
-    -- let parsedData = sorteList 0 (parseFile dataLines)
-    -- let potentialSplits = fPoSpInCo (0,0) (0.0,"",0) parsedData
-    let c = getClass parsedData
-    let classes = removeRedundantClass c
+    let dataLines   = lines dataFile 
+    let parsedData  = parseFile dataLines
+    let c           = getClass parsedData
+    let classes     = removeRedundantClass c
+    let cards       = buildCARD parsedData classes 0 
+    let initMax     = 1.0::Float
+    let best        = foldl (\a (_, (_, e)) -> if e < a then e else a) initMax cards
+    let position    = case head $ filter (\(_, (_, e)) -> e == best) cards of
+                    (x, (y, _)) -> (x, y)
+    putStrLn "Best"
+    putStrLn $ show  best   
+    putStrLn $ show position 
     putStrLn $ show classes
-    putStrLn $ show $ buildCARD parsedData classes 0
-
-    putStrLn $ show parsedData
+    putStrLn $ show cards
 trainTree (_:_)  = myError 1
 
 getClass :: [([Float], String)] -> [String]
