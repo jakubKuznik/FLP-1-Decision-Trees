@@ -5,7 +5,6 @@
 -- Login: xkuzni04
 -- Year: 2024
 
-
 -- execution: 
 -- flp-fun -1 <file-with-three> <file-with-new-data>
 -- flp-fun -2 <file with training data> 
@@ -168,6 +167,15 @@ buildLeft (x:xs) i p =
 
 ------------------------------
 
+
+
+
+
+
+
+
+
+
 -- TASK2 ---------------------
 -- find potential split (where the classes differ)
 -- 1 TA  --> split point 1.5 
@@ -213,6 +221,8 @@ buildCARD da t c = do
     let oneColumnData   = getNthColumn sortedData c
     let potentialSplits = fPoSpInCo (c, 1) (0.0, "", 0) sortedData 
 
+    putStrLn $ show oneColumnData
+    putStrLn $ show potentialSplits
     countGINI oneColumnData potentialSplits t 
     
     -- putStrLn $ show $ length sortedData
@@ -224,29 +234,45 @@ countGINI :: [(Float, String)] -> [Int] -> [String] -> IO ()
 countGINI _ [] _ = do 
     putStr ""
 countGINI da (x:xs) t = do
-    let (l1,l2) = splitAt x da
-    
+
+    -- 1 - (0/3)^2 - (3/3)^2 = 0.0
+    -- 1 - (3/7)^2 - (4/7)^2 = 0.4897
+    -- GINI NUM 
+    -- 3/10 * 0.0 + 7/10 * 0.4897 = 0.3427
+    -- SMALLER GINI -> BETTER SPLIT 
+
+    let (l1,l2)     = splitAt x da
     let totalSize   = fromIntegral (length l1 + length l2)
     let ratio1      = fromIntegral (length l1) / totalSize
     let ratio2      = fromIntegral (length l2) / totalSize
-    let ginF1       = giniFloat l1 t 
-    let ginF2       = giniFloat l2 t
-    let giniRes     = (ratio1 * ginF1) + (ratio2 * ginF2)
-    putStrLn $ show giniRes
-    -- TODO out (x,giniRes) : countGINI
-    countGINI da xs t     
-    putStr ""
+    let classes1    = countMatches t (map snd l1)
+    let classes2    = countMatches t (map snd l2)
+    -- let ginF1       = giniFloat l1 t 
+    -- let ginF2       = giniFloat l2 t
+    -- let giniRes     = (ratio1 * ginF1) + (ratio2 * ginF2)
+    putStrLn "Classess" 
+    putStrLn $ show classes1 
+    putStrLn $ show classes2 
+    -- length (filter (== "TridaB") (map snd b))
+    putStrLn "Count matches"
+    --putStrLn $ show classes1 
+    putStrLn "L1:" 
+    putStrLn $ show l1
+    putStrLn "L2:" 
+    putStrLn $ show l2
+    putStrLn ""
 
+countMatches :: [String] -> [String] -> [(String,Int)]
+countMatches [] _ = []  
+countMatches (x:xs) a = (x, (length (filter (== x) a))) : countMatches xs a 
 
--- (Int,Int) --> (Desired, Current) 
-giniFloat :: [(Float, String)] -> [String] -> Float
-giniFloat _ _ = 1.0
+-- countOccurances :: [String] -> [(String,Int)] 
 
 -- let sortedData = sortedList 0 parsedData  
 -- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
 -- findPotentialSplitsInColumn
 -- for a given column returns a list of (rows,columns) where there is potencial split
---    CARD method 
+-- CARD method 
 fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> [([Float], String)] -> [Int]
 fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
     | c > b      = [-1]
@@ -271,12 +297,10 @@ parseFile [] = []
 parseFile (x:xs) = let
     a = DLSPLIT.splitOn "," x
     in (map read (init a) :: [Float], last a) : parseFile xs 
-
-
 -------------------------------
 
+
 -- association list. for command line argument
--- source: Learn You a Haskell for a Great Good!
 dispatch :: [(String, [String] -> IO ())]
 dispatch =  [ ("-1", loadTree)
             , ("-2", trainTree)
