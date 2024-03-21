@@ -228,6 +228,17 @@ buildCARD da t c = do
     -- putStrLn $ show $ length sortedData
     putStrLn $ show (getNthColumn sortedData 1  )
 
+countMatches :: [String] -> [String] -> [(String,Int)]
+countMatches [] _ = []  
+countMatches (x:xs) a = (x, (length (filter (== x) a))) : countMatches xs a 
+
+-- let flUpper     = countGiniSmall 0 (length l1) classes1 
+countGiniSmall :: Float -> Int -> [Int] -> Float
+countGiniSmall f _ []     = f
+countGiniSmall f s (x:xs) = 
+    countGiniSmall (f + (fromIntegral (x ^ 2) / fromIntegral (s ^ 2))) s xs
+
+
 -- Potential splits rows, all clasess, column, (Row, GINI)
 -- (Int,Int) --> (Desired, Current) 
 countGINI :: [(Float, String)] -> [Int] -> [String] -> IO ()
@@ -240,33 +251,24 @@ countGINI da (x:xs) t = do
     -- GINI NUM 
     -- 3/10 * 0.0 + 7/10 * 0.4897 = 0.3427
     -- SMALLER GINI -> BETTER SPLIT 
-
+    
     let (l1,l2)     = splitAt x da
     let totalSize   = fromIntegral (length l1 + length l2)
     let ratio1      = fromIntegral (length l1) / totalSize
     let ratio2      = fromIntegral (length l2) / totalSize
     let classes1    = countMatches t (map snd l1)
     let classes2    = countMatches t (map snd l2)
-    -- let ginF1       = giniFloat l1 t 
-    -- let ginF2       = giniFloat l2 t
-    -- let giniRes     = (ratio1 * ginF1) + (ratio2 * ginF2)
+    let flUpper     = 1.0 - (countGiniSmall 0 (length l1) (map snd classes1))
+    let flDown      = 1.0 - (countGiniSmall 0 (length l2) (map snd classes2))
+    let gini        = (ratio1 * flUpper) + (ratio2 * flDown)
     putStrLn "Classess" 
     putStrLn $ show classes1 
     putStrLn $ show classes2 
-    -- length (filter (== "TridaB") (map snd b))
-    putStrLn "Count matches"
-    --putStrLn $ show classes1 
-    putStrLn "L1:" 
-    putStrLn $ show l1
-    putStrLn "L2:" 
-    putStrLn $ show l2
-    putStrLn ""
-
-countMatches :: [String] -> [String] -> [(String,Int)]
-countMatches [] _ = []  
-countMatches (x:xs) a = (x, (length (filter (== x) a))) : countMatches xs a 
-
--- countOccurances :: [String] -> [(String,Int)] 
+    putStrLn "SmallGini" 
+    putStrLn $ show flUpper 
+    putStrLn $ show flDown 
+    putStrLn "GINI" 
+    putStrLn $ show gini 
 
 -- let sortedData = sortedList 0 parsedData  
 -- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
