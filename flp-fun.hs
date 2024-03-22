@@ -173,6 +173,8 @@ buildLeft (x:xs) i p =
 
 
 
+
+
 -- data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
 --     deriving (Show, Read, Eq)
 
@@ -183,7 +185,6 @@ trainTree [arg1] = do
     dataFile <- readFile arg1 
     let dataLines   = lines dataFile 
     let parsedData  = parseFile dataLines
-    
     printTree (trainTreeBuild parsedData) 2
 
 trainTree (_:_)  = myError 1
