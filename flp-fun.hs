@@ -21,8 +21,10 @@ import Data.List.Split as DLSPLIT (splitOn)
 -- Files for classification  
 data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
-type TFile  = [TFLine]
-type TFLine = ([Float],String)
+type TFile      = [TFLine]
+type TFLine     = ([Float],String)
+type TColumn    = [(Float,String)]
+type GiniNums   = [(Int,Int,Float)]
 
 -- ERRORS 
 myError :: Int -> IO ()
@@ -183,23 +185,50 @@ trainTree [arg1] = do
     dataFile <- readFile arg1 
     let dataLines   = lines dataFile 
     let parsedData  = parseFile dataLines
+
+    putStrLn $ show $ trainTreeBuild parsedData    
+
     let c           = getClass parsedData
     let classes     = removeRedundantClass c
     let cards       = buildCARD parsedData classes 0 
     let initMax     = 1.0::Float
-    let best        = foldl (\a (_, (_, e)) -> if e < a then e else a) initMax cards
-    let position    = case head $ filter (\(_, (_, e)) -> e == best) cards of
-                    (x, (y, _)) -> (x, y)
-    
-    putStrLn $ show position 
-    putStrLn $ show classes
+    let best        = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
+    let position    = case head $ filter (\(_, _, e) -> e == best) cards of
+                    (x, y, _) -> (x, y)
+    let sortedData  = sorteList (fst position) parsedData
+    let (l1,l2)     = splitAt (snd position) sortedData
+    putStrLn "Cards "
     putStrLn $ show cards
     putStrLn "Best"
-    putStrLn $ show  best   
+    putStrLn $ show  best
+    putStrLn "Positions"
+    putStrLn $ show position 
+    putStrLn $ show $ getNthColumn (sorteList 0 parsedData ) 0
+    putStrLn $ show $ getNthColumn (sorteList 1 parsedData ) 1 
+    putStrLn $ show $ sortedData 
+    putStrLn $ show $ l1 
+    putStrLn $ show $ l2 
+
+
 trainTree (_:_)  = myError 1
 
+-- type TFile      = [TFLine]
+-- type TFLine     = ([Float],String)
+trainTreeBuild :: TFile -> DTree
+trainTreeBuild [] = EmptyDTree
+trainTreeBuild f = 
+    let
+        c            = getClass f 
+        classes      = removeRedundantClass c
+        cards        = buildCARD f classes 0 
+        initMax      = 1.0::Float
+        best         = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
+        bestPosition = case head $ filter (\(_, _, e) -> e == best) cards of
+                        (x, y, _) -> (x, y)
+         
+    in EmptyDTree
 
-getClass :: [([Float], String)] -> [String]
+getClass :: TFile -> [String]
 getClass ((_,s):r) = s : getClass r
 getClass [] = []
 
@@ -207,12 +236,12 @@ removeRedundantClass :: Eq a => [a] -> [a]
 removeRedundantClass (x:xs) = x : removeRedundantClass (filter (/= x) xs)
 removeRedundantClass [] = []
 
-getNthColumn :: [([Float], String)] -> Int -> [(Float, String)]
+getNthColumn :: TFile -> Int -> TColumn 
 getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
 
 -- from data build tree using CARD method
 -- Int <==> column 
-buildCARD :: TFile -> [String] -> Int -> [(Int,(Int,Float))]
+buildCARD :: TFile -> [String] -> Int -> GiniNums 
 buildCARD da t c 
     | c >= (length (fst ( head da))) = []
     | otherwise =
@@ -220,7 +249,7 @@ buildCARD da t c
             oneColumnData   = getNthColumn sortedData c
             potentialSplits = filter (\x -> x < (length da)) (fPoSpInCo (c, 1) (0.0, "", 0) sortedData)
             gini            = countGINI oneColumnData potentialSplits t
-            colGini         = map (\x -> (c,x)) gini
+            colGini         = map (\x -> (c, fst x, snd x)) gini
         in colGini ++ buildCARD da t (c+1) 
 
 -- Potential splits rows, all clasess, column, (Row, GINI)
