@@ -173,8 +173,6 @@ buildLeft (x:xs) i p =
 
 
 
-
-
 -- data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
 --     deriving (Show, Read, Eq)
 
@@ -185,37 +183,9 @@ trainTree [arg1] = do
     dataFile <- readFile arg1 
     let dataLines   = lines dataFile 
     let parsedData  = parseFile dataLines
-
-
+    
     printTree (trainTreeBuild parsedData) 2
 
-    let c           = getClass parsedData
-    let classes     = removeRedundantClass c
-    let cards       = buildCARD parsedData classes 0 
-    let initMax     = 1.0::Float
-    let best        = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
-    let position    = case head $ filter (\(_, _, e) -> e == best) cards of
-                    (x, y, _) -> (x, y)
-    let sortedData  = sorteList (fst position) parsedData
-    let (l1,l2)     = splitAt (snd position) sortedData
-    let floatMiddle = ((fst $ last $ getNthColumn l1 (fst position)) 
-                     + (fst $ head $ getNthColumn l2 (fst position))) / 2 
-    let uniqueClass = length $ DLIST.nub $ map snd sortedData
-    putStrLn "Unique class"
-    putStrLn $ show uniqueClass 
-    putStrLn "Float Middle"
-    putStrLn $ show floatMiddle 
-    
-    putStrLn "Cards "
-    putStrLn $ show cards
-    putStrLn "Best"
-    putStrLn $ show  best
-    putStrLn "Positions"
-    putStrLn $ show position 
-    putStrLn $ show $ getNthColumn (sorteList 0 parsedData ) 0
-    putStrLn $ show $ getNthColumn (sorteList 1 parsedData ) 1 
-    putStrLn $ show $ l1 
-    putStrLn $ show $ l2 
 trainTree (_:_)  = myError 1
 
 trainTreeBuild :: TFile -> DTree
