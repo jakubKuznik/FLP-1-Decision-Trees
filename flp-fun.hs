@@ -14,7 +14,7 @@
 import qualified System.Environment as SE (getArgs)
 import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
-import Data.List as DLIST (sortBy)
+import Data.List as DLIST (sortBy,nub)
 import Data.List.Split as DLSPLIT (splitOn)
 
 -- DATA TYPES:
@@ -186,7 +186,8 @@ trainTree [arg1] = do
     let dataLines   = lines dataFile 
     let parsedData  = parseFile dataLines
 
-    putStrLn $ show $ trainTreeBuild parsedData    
+
+    printTree (trainTreeBuild parsedData) 2 
 
     let c           = getClass parsedData
     let classes     = removeRedundantClass c
@@ -197,6 +198,14 @@ trainTree [arg1] = do
                     (x, y, _) -> (x, y)
     let sortedData  = sorteList (fst position) parsedData
     let (l1,l2)     = splitAt (snd position) sortedData
+    let floatMiddle = ((fst $ last $ getNthColumn l1 (fst position)) 
+                     + (fst $ head $ getNthColumn l2 (fst position))) / 2 
+    let uniqueClass = length $ DLIST.nub $ map snd sortedData
+    putStrLn "Unique class"
+    putStrLn $ show uniqueClass 
+    putStrLn "Float Middle"
+    putStrLn $ show floatMiddle 
+    
     putStrLn "Cards "
     putStrLn $ show cards
     putStrLn "Best"
@@ -205,15 +214,10 @@ trainTree [arg1] = do
     putStrLn $ show position 
     putStrLn $ show $ getNthColumn (sorteList 0 parsedData ) 0
     putStrLn $ show $ getNthColumn (sorteList 1 parsedData ) 1 
-    putStrLn $ show $ sortedData 
     putStrLn $ show $ l1 
     putStrLn $ show $ l2 
-
-
 trainTree (_:_)  = myError 1
 
--- type TFile      = [TFLine]
--- type TFLine     = ([Float],String)
 trainTreeBuild :: TFile -> DTree
 trainTreeBuild [] = EmptyDTree
 trainTreeBuild f = 
@@ -225,8 +229,16 @@ trainTreeBuild f =
         best         = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
         bestPosition = case head $ filter (\(_, _, e) -> e == best) cards of
                         (x, y, _) -> (x, y)
-         
-    in EmptyDTree
+        sortedData   = sorteList (fst bestPosition) f 
+        (l1,l2)      = splitAt (snd bestPosition) sortedData
+        floatMiddle  = ((fst $ last $ getNthColumn l1 (fst bestPosition)) 
+                      + (fst $ head $ getNthColumn l2 (fst bestPosition))) / 2 
+        uniqueClass = length $ DLIST.nub $ map snd sortedData
+    in 
+        if uniqueClass <= 1 then
+            Leaf (snd $ head sortedData)
+        else
+            Node (fst bestPosition) floatMiddle (trainTreeBuild l1) (trainTreeBuild l2)
 
 getClass :: TFile -> [String]
 getClass ((_,s):r) = s : getClass r
