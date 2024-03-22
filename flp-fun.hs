@@ -187,7 +187,7 @@ trainTree [arg1] = do
     let parsedData  = parseFile dataLines
 
 
-    printTree (trainTreeBuild parsedData) 2 
+    printTree (trainTreeBuild parsedData) 2
 
     let c           = getClass parsedData
     let classes     = removeRedundantClass c
@@ -224,21 +224,23 @@ trainTreeBuild f =
     let
         c            = getClass f 
         classes      = removeRedundantClass c
-        cards        = buildCARD f classes 0 
-        initMax      = 1.0::Float
-        best         = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
-        bestPosition = case head $ filter (\(_, _, e) -> e == best) cards of
-                        (x, y, _) -> (x, y)
-        sortedData   = sorteList (fst bestPosition) f 
-        (l1,l2)      = splitAt (snd bestPosition) sortedData
-        floatMiddle  = ((fst $ last $ getNthColumn l1 (fst bestPosition)) 
-                      + (fst $ head $ getNthColumn l2 (fst bestPosition))) / 2 
-        uniqueClass = length $ DLIST.nub $ map snd sortedData
+        uniqueClass = length $ DLIST.nub $ map snd f 
     in 
         if uniqueClass <= 1 then
-            Leaf (snd $ head sortedData)
+            Leaf (snd $ head f)
         else
-            Node (fst bestPosition) floatMiddle (trainTreeBuild l1) (trainTreeBuild l2)
+            let
+                sortedData   = sorteList (fst bestPosition) f 
+                cards        = buildCARD f classes 0 
+                initMax      = 1.0::Float
+                best         = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
+                bestPosition = case head $ filter (\(_, _, e) -> e == best) cards of
+                                (x, y, _) -> (x, y)
+                (l1,l2)      = splitAt (snd bestPosition) sortedData
+                floatMiddle  = ((fst $ last $ getNthColumn l1 (fst bestPosition)) 
+                            + (fst $ head $ getNthColumn l2 (fst bestPosition))) / 2 
+            in
+                Node (fst bestPosition) floatMiddle (trainTreeBuild l1) (trainTreeBuild l2)
 
 getClass :: TFile -> [String]
 getClass ((_,s):r) = s : getClass r
@@ -253,13 +255,13 @@ getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
 
 -- from data build tree using CARD method
 -- Int <==> column 
-buildCARD :: TFile -> [String] -> Int -> GiniNums 
+buildCARD :: TFile -> [String]  -> Int -> GiniNums 
 buildCARD da t c 
     | c >= (length (fst ( head da))) = []
     | otherwise =
         let sortedData      = sorteList c da 
             oneColumnData   = getNthColumn sortedData c
-            potentialSplits = filter (\x -> x < (length da)) (fPoSpInCo (c, 1) (0.0, "", 0) sortedData)
+            potentialSplits = filter (\x -> x < (length da)) (findSplits 0 "" oneColumnData)
             gini            = countGINI oneColumnData potentialSplits t
             colGini         = map (\x -> (c, fst x, snd x)) gini
         in colGini ++ buildCARD da t (c+1) 
@@ -290,23 +292,12 @@ countGiniSmall f _ []     = f
 countGiniSmall f s (x:xs) = 
     countGiniSmall (f + (fromIntegral (x*x) / fromIntegral (s*s))) s xs
 
--- let sortedData = sortedList 0 parsedData  
--- (row,column) -> (prev_float, previous_Class,b) -> Data -> (row,column)
--- findPotentialSplitsInColumn
--- for a given column returns a list of (rows,columns) where there is potencial split
--- CARD method 
-fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> TFile -> [Int]
-fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
-    | c > b      = [-1]
-    | otherwise  = fPoSpInCo (1,c) (f,s,0) r
-fPoSpInCo (0,c) (_,"",b) (((f:fr),s):r) -- get to given column  
-    | c /= b    = fPoSpInCo (0,c) (0.0,s,b+1) ((fr,s) : r)
-    | otherwise = fPoSpInCo (1,c) (f,s,0) r
-fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r) -- check if class is differ 
-    | c /= b    = fPoSpInCo (n,c) (pf,pc,b+1) ((fr,s) : r)
-    | pc == s   = fPoSpInCo (n+1, c) (f, s, 0) r
-    | otherwise = (n) : fPoSpInCo (n+1, c) (f, s, 0) r
-fPoSpInCo _ _ _ = []
+findSplits :: Int -> String -> TColumn -> [Int]
+findSplits 0 _ ((_,s):rs) = findSplits 1 s rs 
+findSplits n pc ((_,s):rs) -- check if class is differ 
+    | pc == s   = findSplits (n+1) s rs
+    | otherwise = (n) : findSplits (n+1) s rs
+findSplits _ _ _ = []
 
 compareNthFloat :: Int -> TFLine -> TFLine -> Ordering
 compareNthFloat n (a, _) (b, _) = compare (a !! n) (b !! n)
