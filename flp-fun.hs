@@ -19,10 +19,10 @@ import Data.List.Split as DLSPLIT (splitOn)
 
 -- DATA TYPES:
 -- Files for classification  
-
--- a should be Ord 
 data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
+type TFile  = [TFLine]
+type TFLine = ([Float],String)
 
 -- ERRORS 
 myError :: Int -> IO ()
@@ -173,8 +173,8 @@ buildLeft (x:xs) i p =
 
 
 
-
-
+-- data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
+--     deriving (Show, Read, Eq)
 
 -- TASK2 ---------------------
 trainTree :: [String] -> IO ()
@@ -190,12 +190,14 @@ trainTree [arg1] = do
     let best        = foldl (\a (_, (_, e)) -> if e < a then e else a) initMax cards
     let position    = case head $ filter (\(_, (_, e)) -> e == best) cards of
                     (x, (y, _)) -> (x, y)
-    putStrLn "Best"
-    putStrLn $ show  best   
+    
     putStrLn $ show position 
     putStrLn $ show classes
     putStrLn $ show cards
+    putStrLn "Best"
+    putStrLn $ show  best   
 trainTree (_:_)  = myError 1
+
 
 getClass :: [([Float], String)] -> [String]
 getClass ((_,s):r) = s : getClass r
@@ -210,7 +212,7 @@ getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
 
 -- from data build tree using CARD method
 -- Int <==> column 
-buildCARD :: [([Float], String)] -> [String] -> Int -> [(Int,(Int,Float))]
+buildCARD :: TFile -> [String] -> Int -> [(Int,(Int,Float))]
 buildCARD da t c 
     | c >= (length (fst ( head da))) = []
     | otherwise =
@@ -252,7 +254,7 @@ countGiniSmall f s (x:xs) =
 -- findPotentialSplitsInColumn
 -- for a given column returns a list of (rows,columns) where there is potencial split
 -- CARD method 
-fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> [([Float], String)] -> [Int]
+fPoSpInCo :: (Int, Int) -> (Float, String, Int) -> TFile -> [Int]
 fPoSpInCo (0,c) (_,_,b) (([f],s):r)   -- if i am on the last column
     | c > b      = [-1]
     | otherwise  = fPoSpInCo (1,c) (f,s,0) r
@@ -265,13 +267,13 @@ fPoSpInCo (n,c) (pf,pc,b) (((f:fr),s):r) -- check if class is differ
     | otherwise = (n) : fPoSpInCo (n+1, c) (f, s, 0) r
 fPoSpInCo _ _ _ = []
 
-compareNthFloat :: Int -> ([Float], String) -> ([Float], string) -> Ordering
+compareNthFloat :: Int -> TFLine -> TFLine -> Ordering
 compareNthFloat n (a, _) (b, _) = compare (a !! n) (b !! n)
 
-sorteList :: Int -> [([Float], String)] -> [([Float], String)]
+sorteList :: Int -> TFile -> TFile 
 sorteList n k = sortBy (compareNthFloat n) k 
 
-parseFile :: [String] -> [([Float], String)]
+parseFile :: [String] -> TFile 
 parseFile [] = []
 parseFile (x:xs) = let
     a = DLSPLIT.splitOn "," x
