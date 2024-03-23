@@ -29,10 +29,10 @@ Output:
 TridaA
 TridaB
 TridaC
-```
-### Task 2 
-`flp-fun -2 <file with training data>`  
-The Program creates a decision tree based on the training data.   
+``` 
+### Task 2   
+The Program creates a decision tree based on the training data.     
+`flp-fun -2 <file with training data>`   
 
 In this implementation, the Gini index is calculated without pruning. During each iteration, all possible splits are evaluated, and the one resulting in the highest information gain is selected. When printed at the end of the program, values are rounded to one decimal place.
 
