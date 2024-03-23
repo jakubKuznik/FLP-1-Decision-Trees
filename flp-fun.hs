@@ -9,8 +9,6 @@
 -- flp-fun -1 <file-with-three> <file-with-new-data>
 -- flp-fun -2 <file with training data> 
 
---libs 
--- base, containers, parsec, vector, split, directory, random. !!
 import qualified System.Environment as SE (getArgs)
 import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
@@ -18,29 +16,19 @@ import Data.List as DLIST (sortBy,nub)
 import Data.List.Split as DLSPLIT (splitOn)
 
 -- DATA TYPES:
--- Files for classification  
 data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
 type TFile      = [TFLine]
 type TFLine     = ([Float],String)
 type TColumn    = [(Float,String)]
 type GiniNums   = [(Int,Int,Float)]
+type GiniRow    = [(Int,Float)]
 
--- ERRORS 
 myError :: Int -> IO ()
 myError 1 = CONE.throwIO $ SYSIOE.userError  "Wrong arguments format."
 myError 2 = CONE.throwIO $ SYSIOE.userError  "No arguments given."
 myError 3 = CONE.throwIO $ SYSIOE.userError  "Cannot classify data."
 myError _ = CONE.throwIO $ SYSIOE.userError  "Unknown Error."
-
--- TODO delete 
-printTree :: DTree -> Int -> IO ()
-printTree (Leaf str) indent = putStrLn $ replicate indent ' ' ++ "Leaf: " ++ str
-printTree (Node flag bound left right) indent = do
-    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", " ++ show bound
-    printTree left (indent + 2)
-    printTree right (indent + 2)
-printTree EmptyDTree _ = putStrLn "<Empty>"
 
 -- TASK 1 --------------------
 loadTree :: [String] -> IO ()
@@ -58,7 +46,7 @@ loadTree (_:_)        = myError 1
 getOnIndex :: [Float] -> Int -> Float
 getOnIndex (x:_) 0 = x
 getOnIndex (_:xs) i = getOnIndex xs (i-1)
-getOnIndex _ _ = 0 --todo error
+getOnIndex _ _ = 0 
 
 evaluateLine :: DTree -> [Float] -> IO ()
 evaluateLine (Node i f l r) xs = do
@@ -132,7 +120,6 @@ buildTree (x:xs) = buildNode (x:xs) x (countSpaces x)
 buildTree _ = EmptyDTree 
 
 -- Give me string of the node 
--- Int is a spaces of builded node 
 buildNode :: [String] -> String -> Int -> DTree
 buildNode _ [] _ = EmptyDTree
 buildNode (x:xs) r i = 
@@ -152,31 +139,18 @@ buildNode (x:xs) r i =
             _ -> EmptyDTree
 buildNode _ _ _ = EmptyDTree
 
--- Int is parentspaces
 buildRight :: [String] -> Int -> String -> DTree
 buildRight [] _ _ = EmptyDTree
 buildRight (x:xs) i p =  
     let r = findNodeString (x:xs) "Right" i p 
     in buildNode (x:xs) r i
 
--- Int is parentspaces 
 -- String is parrent string 
 buildLeft :: [String] -> Int -> String -> DTree
 buildLeft [] _ _ = EmptyDTree
 buildLeft (x:xs) i p = 
     let r = findNodeString (x:xs) "Left" i p
     in buildNode (x:xs) r i 
-
-------------------------------
-
-
-
-
-
-
-
--- data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
---     deriving (Show, Read, Eq)
 
 -- TASK2 ---------------------
 trainTree :: [String] -> IO ()
@@ -186,7 +160,6 @@ trainTree [arg1] = do
     let dataLines   = lines dataFile 
     let parsedData  = parseFile dataLines
     printTree (trainTreeBuild parsedData) 2
-
 trainTree (_:_)  = myError 1
 
 trainTreeBuild :: TFile -> DTree
@@ -239,7 +212,7 @@ buildCARD da t c
 
 -- Potential splits rows, all clasess, column, (Row, GINI)
 -- (Int,Int) --> (Desired, Current) 
-countGINI :: [(Float, String)] -> [Int] -> [String] -> [(Int,Float)]
+countGINI :: TColumn -> [Int] -> [String] -> GiniRow 
 countGINI _ [] _ = [] 
 countGINI da (x:xs) t = 
     let (l1,l2)     = splitAt x da
@@ -257,7 +230,6 @@ countMatches :: [String] -> [String] -> [(String,Int)]
 countMatches [] _ = []  
 countMatches (x:xs) a = (x, (length (filter (== x) a))) : countMatches xs a 
 
--- let flUpper     = countGiniSmall 0 (length l1) classes1 
 countGiniSmall :: Float -> Int -> [Int] -> Float
 countGiniSmall f _ []     = f
 countGiniSmall f s (x:xs) = 
@@ -281,6 +253,14 @@ parseFile [] = []
 parseFile (x:xs) = let
     a = DLSPLIT.splitOn "," x
     in (map read (init a) :: [Float], last a) : parseFile xs 
+
+printTree :: DTree -> Int -> IO ()
+printTree (Leaf str) indent = putStrLn $ replicate indent ' ' ++ "Leaf: " ++ str
+printTree (Node flag bound left right) indent = do
+    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", " ++ show bound
+    printTree left (indent + 2)
+    printTree right (indent + 2)
+printTree EmptyDTree _ = putStrLn "<Empty>"
 -------------------------------
 
 -- association list. for command line argument
