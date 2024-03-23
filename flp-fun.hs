@@ -14,6 +14,7 @@ import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
 import Data.List as DLIST (sortBy,nub)
 import Data.List.Split as DLSPLIT (splitOn)
+import Text.Printf
 
 -- DATA TYPES:
 data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
@@ -257,7 +258,7 @@ parseFile (x:xs) = let
 printTree :: DTree -> Int -> IO ()
 printTree (Leaf str) indent = putStrLn $ replicate indent ' ' ++ "Leaf: " ++ str
 printTree (Node flag bound left right) indent = do
-    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", " ++ show bound
+    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", "  ++ printf "%.1f" bound
     printTree left (indent + 2)
     printTree right (indent + 2)
 printTree EmptyDTree _ = putStrLn "<Empty>"
