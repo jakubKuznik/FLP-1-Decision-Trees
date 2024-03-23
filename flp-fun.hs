@@ -34,13 +34,12 @@ myError _ = CONE.throwIO $ SYSIOE.userError  "Unknown Error."
 -- TASK 1 --------------------
 loadTree :: [String] -> IO ()
 loadTree []           = myError 1
-loadTree [_]          = myError 1
 loadTree [arg1, arg2] = do 
     treeFile <- readFile arg1 
-    let treeLines = lines treeFile
+    let treeLines = filter (not. null) $ lines treeFile
     let tree = buildTree treeLines 
     dataFile <- readFile arg2
-    let dataLines = lines dataFile
+    let dataLines = filter (not. null) $ lines dataFile
     evaluateData tree dataLines
 loadTree (_:_)        = myError 1
 
@@ -158,7 +157,7 @@ trainTree :: [String] -> IO ()
 trainTree []     = myError 1
 trainTree [arg1] = do
     dataFile <- readFile arg1 
-    let dataLines   = lines dataFile 
+    let dataLines   = filter (not . null) $ lines dataFile 
     let parsedData  = parseFile dataLines
     printTree (trainTreeBuild parsedData) 2
 trainTree (_:_)  = myError 1
