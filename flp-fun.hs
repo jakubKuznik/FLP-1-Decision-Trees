@@ -38,9 +38,7 @@ loadTree [arg1, arg2] = do
     let treeLines = filter (not. null) $ lines treeFile
     let tree = buildTree treeLines 
     dataFile <- readFile arg2
-    printTree tree 2
     let dataLines = filter (not. null) $ lines dataFile
-    putStr $ show dataLines
     evaluateData tree dataLines
 loadTree (_:_)        = myError 1
 
@@ -51,37 +49,21 @@ getOnIndex _ _ = 0
 
 evaluateLine :: DTree -> [Double] -> IO ()
 evaluateLine (Node i f l r) xs = do
-    putStr "ZZZZ: "
-    putStr "index: "
-    putStr $show i
-    putStr " NUM: "
     let x :: Double 
         x = getOnIndex xs i 
-    putStr $ show x
     if x <= f
         then do 
-            putStr " LEFT " 
-            putStrLn "" 
             evaluateLine l xs 
         else do 
-            putStr " RIGHT " 
-            putStrLn "" 
             evaluateLine r xs 
-evaluateLine (Leaf s) xs = do
-    putStrLn ""
-    putStrLn $ show xs 
+evaluateLine (Leaf s) _ = do
     putStrLn s 
-    putStrLn "------------- evaluated ----------------"
 evaluateLine _ _ = myError 3
 
 evaluateData :: DTree -> [String] -> IO ()
 evaluateData t (x:xs) = do
     let line = map read $ splitOn "," $ removeSpaces x :: [Double]
-    putStrLn ""
-    putStr "XXXX"
-    putStrLn $ show line  
     evaluateLine t line
-    putStrLn ""
     evaluateData t xs
 evaluateData _ [] = return () 
 
@@ -105,32 +87,28 @@ getNodeString x = let
     [a, b] = DLSPLIT.splitOn "," rest
     in (a,b)
 
--- find lines with specific number of spaces 
-findNodeStrings :: [String] -> Int -> [String]
-findNodeStrings [] _ = []
-findNodeStrings (x:xs) i 
-    | countSpaces x == i = x : findNodeStrings xs i 
-    | otherwise = findNodeStrings xs i 
+-- find lines with specific number of spaces and its line 
+findNodeStrings :: [String] -> Int -> Int -> [(String,Int)]
+findNodeStrings [] _ _ = []
+findNodeStrings (x:xs) i c 
+    | countSpaces x == i = (x,c) : findNodeStrings xs i (c+1)
+    | otherwise = findNodeStrings xs i (c+1) 
 
 -- Find String that represent successor in string stream 
 -- findNode [String] "Left" nodeSpaces 
-findNodeString :: [String] -> String ->  Int -> String -> String
-findNodeString (x:xs) "Left" i "" = do
-    let linesFound = findNodeStrings (x:xs) (i)
-    case linesFound of
-        []      -> ""
-        [s]     -> s 
-        (s:_:_)   -> s 
-findNodeString (x:xs) "Right" i "" = do
-    let linesFound = findNodeStrings (x:xs) (i)
-    case linesFound of
-        []      -> ""
-        [_]     -> ""
-        (_:s:_) -> s 
+findNodeString :: [String] -> String ->  Int -> String -> (String, Int)
+findNodeString (x:xs) "Left" i ""
+    | not (null linesFound) = head linesFound
+    | otherwise = ("", 0)
+    where linesFound = findNodeStrings (x:xs) i 0
+findNodeString (x:xs) "Right" i ""
+    | length linesFound > 1 = linesFound !! 1
+    | otherwise = ("", 0)
+    where linesFound = findNodeStrings (x:xs) i 0
 findNodeString (x:xs) a i p
     | p == x = findNodeString xs a i ""
     | otherwise = findNodeString xs a i p
-findNodeString _ _ _ _ = "" 
+findNodeString _ _ _ _ = ("", 0)
 
 -- Successor always has spaces + 2 
 buildTree :: [String] -> DTree 
@@ -157,18 +135,18 @@ buildNode (x:xs) r i =
             _ -> EmptyDTree
 buildNode _ _ _ = EmptyDTree
 
+-- String is parrent string 
 buildRight :: [String] -> Int -> String -> DTree
 buildRight [] _ _ = EmptyDTree
 buildRight (x:xs) i p =  
-    let r = findNodeString (x:xs) "Right" i p 
-    in buildNode (x:xs) r i
+    let (r,s) = findNodeString (x:xs) "Right" i p 
+    in buildNode (drop s(x:xs)) r i
 
--- String is parrent string 
 buildLeft :: [String] -> Int -> String -> DTree
 buildLeft [] _ _ = EmptyDTree
 buildLeft (x:xs) i p = 
-    let r = findNodeString (x:xs) "Left" i p
-    in buildNode (x:xs) r i 
+    let (r,s) = findNodeString (x:xs) "Left" i p
+    in buildNode (drop s (x:xs)) r i 
 
 -- TASK2 ---------------------
 trainTree :: [String] -> IO ()
