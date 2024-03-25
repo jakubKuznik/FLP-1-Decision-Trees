@@ -14,16 +14,15 @@ import System.IO.Error as SYSIOE (userError)
 import Control.Exception as CONE (throwIO)
 import Data.List as DLIST (sortBy,nub)
 import Data.List.Split as DLSPLIT (splitOn)
-import Text.Printf
 
 -- DATA TYPES:
-data DTree = EmptyDTree | Leaf String | Node Int Float (DTree ) (DTree ) 
+data DTree = EmptyDTree | Leaf String | Node Int Double (DTree ) (DTree ) 
     deriving (Show, Read, Eq)
 type TFile      = [TFLine]
-type TFLine     = ([Float],String)
-type TColumn    = [(Float,String)]
-type GiniNums   = [(Int,Int,Float)]
-type GiniRow    = [(Int,Float)]
+type TFLine     = ([Double],String)
+type TColumn    = [(Double,String)]
+type GiniNums   = [(Int,Int,Double)]
+type GiniRow    = [(Int,Double)]
 
 myError :: Int -> IO ()
 myError 1 = CONE.throwIO $ SYSIOE.userError  "Wrong arguments format."
@@ -39,31 +38,50 @@ loadTree [arg1, arg2] = do
     let treeLines = filter (not. null) $ lines treeFile
     let tree = buildTree treeLines 
     dataFile <- readFile arg2
+    printTree tree 2
     let dataLines = filter (not. null) $ lines dataFile
+    putStr $ show dataLines
     evaluateData tree dataLines
 loadTree (_:_)        = myError 1
 
-getOnIndex :: [Float] -> Int -> Float
+getOnIndex :: [Double] -> Int -> Double 
 getOnIndex (x:_) 0 = x
 getOnIndex (_:xs) i = getOnIndex xs (i-1)
 getOnIndex _ _ = 0 
 
-evaluateLine :: DTree -> [Float] -> IO ()
+evaluateLine :: DTree -> [Double] -> IO ()
 evaluateLine (Node i f l r) xs = do
-    let x = getOnIndex xs i 
+    putStr "ZZZZ: "
+    putStr "index: "
+    putStr $show i
+    putStr " NUM: "
+    let x :: Double 
+        x = getOnIndex xs i 
+    putStr $ show x
     if x <= f
         then do 
+            putStr " LEFT " 
+            putStrLn "" 
             evaluateLine l xs 
         else do 
+            putStr " RIGHT " 
+            putStrLn "" 
             evaluateLine r xs 
-evaluateLine (Leaf s) _ = do
+evaluateLine (Leaf s) xs = do
+    putStrLn ""
+    putStrLn $ show xs 
     putStrLn s 
+    putStrLn "------------- evaluated ----------------"
 evaluateLine _ _ = myError 3
 
 evaluateData :: DTree -> [String] -> IO ()
 evaluateData t (x:xs) = do
-    let line = map read . splitOn "," $ removeSpaces x :: [Float]
+    let line = map read $ splitOn "," $ removeSpaces x :: [Double]
+    putStrLn ""
+    putStr "XXXX"
+    putStrLn $ show line  
     evaluateLine t line
+    putStrLn ""
     evaluateData t xs
 evaluateData _ [] = return () 
 
@@ -132,7 +150,7 @@ buildNode (x:xs) r i =
                 let (a, b) = getNodeString rest
                     leftTree = buildLeft  (x:xs) (i + 2) r 
                     righTree = buildRight (x:xs) (i + 2) r 
-                in Node (read a :: Int) (read b :: Float) leftTree righTree
+                in Node (read a :: Int) (read b :: Double) leftTree righTree
             "Leaf"  -> 
                 let [_,b] = DLSPLIT.splitOn ":" rest
                 in Leaf b 
@@ -176,15 +194,15 @@ trainTreeBuild f =
             let
                 sortedData   = sorteList (fst bestPosition) f 
                 cards        = buildCARD f classes 0 
-                initMax      = 1.0::Float
+                initMax      = 1.0::Double
                 best         = foldl (\a (_, _, e) -> if e < a then e else a) initMax cards
                 bestPosition = case head $ filter (\(_, _, e) -> e == best) cards of
                                 (x, y, _) -> (x, y)
                 (l1,l2)      = splitAt (snd bestPosition) sortedData
-                floatMiddle  = ((fst $ last $ getNthColumn l1 (fst bestPosition)) 
+                doubleMiddle = ((fst $ last $ getNthColumn l1 (fst bestPosition)) 
                             + (fst $ head $ getNthColumn l2 (fst bestPosition))) / 2 
             in
-                Node (fst bestPosition) floatMiddle (trainTreeBuild l1) (trainTreeBuild l2)
+                Node (fst bestPosition) doubleMiddle (trainTreeBuild l1) (trainTreeBuild l2)
 
 getClass :: TFile -> [String]
 getClass ((_,s):r) = s : getClass r
@@ -195,7 +213,7 @@ removeRedundantClass (x:xs) = x : removeRedundantClass (filter (/= x) xs)
 removeRedundantClass [] = []
 
 getNthColumn :: TFile -> Int -> TColumn 
-getNthColumn dataList n = [(floatList !! n, str) | (floatList, str) <- dataList]
+getNthColumn dataList n = [(doubleList !! n, str) | (doubleList, str) <- dataList]
 
 -- from data build tree using CARD method
 -- Int <==> column 
@@ -230,7 +248,7 @@ countMatches :: [String] -> [String] -> [(String,Int)]
 countMatches [] _ = []  
 countMatches (x:xs) a = (x, (length (filter (== x) a))) : countMatches xs a 
 
-countGiniSmall :: Float -> Int -> [Int] -> Float
+countGiniSmall :: Double -> Int -> [Int] -> Double 
 countGiniSmall f _ []     = f
 countGiniSmall f s (x:xs) = 
     countGiniSmall (f + (fromIntegral (x*x) / fromIntegral (s*s))) s xs
@@ -242,22 +260,23 @@ findSplits n pc ((_,s):rs) -- check if class is differ
     | otherwise = (n) : findSplits (n+1) s rs
 findSplits _ _ _ = []
 
-compareNthFloat :: Int -> TFLine -> TFLine -> Ordering
-compareNthFloat n (a, _) (b, _) = compare (a !! n) (b !! n)
+compareNthDouble :: Int -> TFLine -> TFLine -> Ordering
+compareNthDouble n (a, _) (b, _) = compare (a !! n) (b !! n)
 
 sorteList :: Int -> TFile -> TFile 
-sorteList n k = sortBy (compareNthFloat n) k 
+sorteList n k = sortBy (compareNthDouble n) k 
 
 parseFile :: [String] -> TFile 
 parseFile [] = []
 parseFile (x:xs) = let
     a = DLSPLIT.splitOn "," x
-    in (map read (init a) :: [Float], last a) : parseFile xs 
+    in (map read (init a) :: [Double], last a) : parseFile xs 
 
 printTree :: DTree -> Int -> IO ()
 printTree (Leaf str) indent = putStrLn $ replicate indent ' ' ++ "Leaf: " ++ str
 printTree (Node flag bound left right) indent = do
-    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", "  ++ printf "%.1f" bound
+    putStrLn $ replicate indent ' ' ++ "Node: " ++ show flag ++ ", "  
+        ++ show bound 
     printTree left (indent + 2)
     printTree right (indent + 2)
 printTree EmptyDTree _ = putStrLn "<Empty>"
