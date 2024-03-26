@@ -155,7 +155,10 @@ trainTree [arg1] = do
     dataFile <- readFile arg1 
     let dataLines   = filter (not . null) $ lines dataFile 
     let parsedData  = parseFile dataLines
-    printTree (trainTreeBuild parsedData) 2
+    let tree = trainTreeBuild parsedData
+    case tree of
+        Leaf str -> putStrLn $ "Leaf: " ++ str  -- Only one classp  
+        _        -> printTree tree 2
 trainTree (_:_)  = myError 1
 
 trainTreeBuild :: TFile -> DTree
